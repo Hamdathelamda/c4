@@ -1,21 +1,24 @@
-// c4.c - C in four functions
-
-// char, int, and pointer types
-// if, while, return, and expression statements
+// c4.c - C in four functions a four functions c compiler
+//the compiler has some c subsets like:
+// char, int, and pointer types which are basic types
+// if, while, return, and expression statements 
 // just enough features to allow self-compilation and a bit more
 
 // Written by Robert Swierczek
+
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
 #include <unistd.h>
 #include <fcntl.h>
-#define int long long
+#define int long long //handling very large values by defining int as long long 
 
+//data storage and glabal pointers for the source code:
 char *p, *lp, // current position in source code
      *data;   // data/bss pointer
 
+//emitted code global pointers and variables:
 int *e, *le,  // current position in emitted code
     *id,      // currently parsed identifier
     *sym,     // symbol table (simple list of identifiers)
@@ -34,16 +37,18 @@ enum {
   Assign, Cond, Lor, Lan, Or, Xor, And, Eq, Ne, Lt, Gt, Le, Ge, Shl, Shr, Add, Sub, Mul, Div, Mod, Inc, Dec, Brak
 };
 
-// opcodes
+// opcodes for execution
 enum { LEA ,IMM ,JMP ,JSR ,BZ  ,BNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PSH ,
        OR  ,XOR ,AND ,EQ  ,NE  ,LT  ,GT  ,LE  ,GE  ,SHL ,SHR ,ADD ,SUB ,MUL ,DIV ,MOD ,
        OPEN,READ,CLOS,PRTF,MALC,FREE,MSET,MCMP,EXIT };
 
-// types
+// types definition
 enum { CHAR, INT, PTR };
 
 // identifier offsets (since we can't create an ident struct)
 enum { Tk, Hash, Name, Class, Type, Val, HClass, HType, HVal, Idsz };
+
+//next() is a lexical analyzer to tokenize the source code input, it takes characters from the code then converts them into token. it uses identifiers, constants, strings, and white space handling:
 
 void next()
 {
@@ -51,7 +56,7 @@ void next()
 
   while (tk = *p) {
     ++p;
-    if (tk == '\n') {
+    if (tk == '\n') { //handles new lines and debug source printing
       if (src) {
         printf("%d: %.*s", line, p - lp, lp);
         lp = p;
@@ -64,10 +69,10 @@ void next()
       }
       ++line;
     }
-    else if (tk == '#') {
+    else if (tk == '#') { //skip preprocessor directives
       while (*p != 0 && *p != '\n') ++p;
     }
-    else if ((tk >= 'a' && tk <= 'z') || (tk >= 'A' && tk <= 'Z') || tk == '_') {
+    else if ((tk >= 'a' && tk <= 'z') || (tk >= 'A' && tk <= 'Z') || tk == '_') { //parsing of keywords
       pp = p - 1;
       while ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') || *p == '_')
         tk = tk * 147 + *p++;
@@ -81,7 +86,7 @@ void next()
       id[Hash] = tk;
       tk = id[Tk] = Id;
       return;
-    }
+    } //number parsing 
     else if (tk >= '0' && tk <= '9') {
       if (ival = tk - '0') { while (*p >= '0' && *p <= '9') ival = ival * 10 + *p++ - '0'; }
       else if (*p == 'x' || *p == 'X') {
@@ -113,7 +118,7 @@ void next()
       ++p;
       if (tk == '"') ival = (int)pp; else tk = Num;
       return;
-    }
+    }//operator parsing
     else if (tk == '=') { if (*p == '=') { ++p; tk = Eq; } else tk = Assign; return; }
     else if (tk == '+') { if (*p == '+') { ++p; tk = Inc; } else tk = Add; return; }
     else if (tk == '-') { if (*p == '-') { ++p; tk = Dec; } else tk = Sub; return; }
@@ -127,11 +132,11 @@ void next()
     else if (tk == '*') { tk = Mul; return; }
     else if (tk == '[') { tk = Brak; return; }
     else if (tk == '?') { tk = Cond; return; }
-    else if (tk == '~' || tk == ';' || tk == '{' || tk == '}' || tk == '(' || tk == ')' || tk == ']' || tk == ',' || tk == ':') return;
+    else if (tk == '~' || tk == ';' || tk == '{' || tk == '}' || tk == '(' || tk == ')' || tk == ']' || tk == ',' || tk == ':') return; //special chars handling
   }
 }
 
-void expr(int lev)
+void expr(int lev) //parses expressions and evaluates them recursevly 
 {
   int t, *d;
 
@@ -281,7 +286,7 @@ void expr(int lev)
   }
 }
 
-void stmt()
+void stmt() //parses while, if-else, return statements and blocks 
 {
   int *a, *b;
 
@@ -330,7 +335,7 @@ void stmt()
   }
 }
 
-int main(int argc, char **argv)
+int main(int argc, char **argv) //initializes memory and loads code then parses, it also sets up vm to execute the bytecode compiled
 {
   int fd, bt, ty, poolsz, *idmain;
   int *pc, *sp, *bp, a, cycle; // vm registers
